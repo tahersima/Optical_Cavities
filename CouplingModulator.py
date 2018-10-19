@@ -41,8 +41,9 @@ print("Sheet names are:", xl.sheet_names)
 ##############################################################################
 def Range(arr):
     array_start=398 #from 1547 nm
-#    array_start=248 #from 1547 nm
+#    array_start=449 #from 1547 nm
     array_end=482 #to 1553 nm
+#    array_end=452 #to 1553 nm
     arr = arr[array_start:array_end]
     return arr
 
@@ -314,19 +315,17 @@ if args.Data == 'EO_A': ## Process steps
     plt.show()
     
     print ("\n Extinsion ratio vs device length")
-    bias = np.linspace(-4,4,9)
-    color=iter(cm.viridis(np.linspace(0,1,4)))
+    leng = np.array([2, 4, 6, 8, 16])
+    ER_STD, ER_AVG = np.zeros(0), np.zeros(0)
     for dd in [1,2,3,4,5]:
-        ER_STD, ER_AVG = np.zeros(0), np.zeros(0)  
         spec0 = Range(T_arr[dd-1,sampleNum-1,4].reshape((851,1)))        
-        for ii in range (0,9,1):
-            spec = T_arr[dd-1,sampleNum-1,ii]
-            spec = spec.reshape((851,1))
-            spec = Range (spec)
-            ER_AVG = np.append (ER_AVG, np.average (ER(spec, spec0)))
-            ER_STD = np.append( ER_STD, np.std (ER(spec, spec0)))        
-        plt.errorbar(bias, np.absolute(ER_AVG), ER_STD, fmt = 'o', c = next(color), label = str(dd)+' micron')
+        spec = T_arr[dd-1,sampleNum-1,7]
+        spec = spec.reshape((851,1))
+        spec = Range (spec)
+        ER_AVG = np.append (ER_AVG, np.average (np.absolute(ER(spec, spec0))))
+        ER_STD = np.append( ER_STD, np.std (np.absolute(ER(spec, spec0))))        
+    plt.errorbar(leng, np.absolute(ER_AVG), ER_STD, fmt = 'o', c = 'k', label = str(dd)+' micron')
     plt.xlabel("Bias Voltage [V]")
     plt.ylabel("ER [dB]")
-    plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left")
+    plt.axis([0,18,0,1.25])
     plt.show()
