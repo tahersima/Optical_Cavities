@@ -1,11 +1,14 @@
 """
-Created on Fri Feb  9 20:32:56 2018
+Created on Fri Feb 9 2018
 @author: M.H. Tahersima
-Data analysis of Experimental ring transfer functions 
+Experimental data visualization and analysis for micro ring resonator (MRR) 
+based photonic integrated circuit electro-optic modulators 
+
+To run you need 4003_measurements.xlsx or your own data set
+
+Related publications: 
+"Reservoir coupling electro-optic modulator on silicon", Active Photonic Platforms X. Vol. 10721. SPIE, 2018.
 """
-#import os
-#clear = lambda: os.system('cls')
-#clear()
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -26,7 +29,7 @@ from scipy.optimize import curve_fit
 parser = argparse.ArgumentParser(description = 'DNN')
 parser.add_argument('--Data', '-d', default = 'EO_A', help = 'Data to be plotted')
 # radius: various passive rings; process: effect of process steps on transfer function
-# final: final dveice; EO: Electro optic modulation; IV: the current vs voltage plot from negative to positive bias
+# final: final device; EO: Electro optic modulation; IV: the current vs voltage plot from negative to positive bias
 # EO_A: Electro optic modulation data new data
 parser.add_argument('--inDB', '-db', default = 'True', help = 'Should plot be in dB')
 parser.add_argument('--pos', '-p', default = True, help = 'Is bias voltage positive?')
@@ -40,9 +43,9 @@ print("Sheet names are:", xl.sheet_names)
 # Functions
 ##############################################################################
 def Range(arr):
-    array_start=398 #from 1547 nm
+    array_start=400 #from 1547 nm
 #    array_start=449 #from 1547 nm
-    array_end=482 #to 1553 nm
+    array_end=480 #to 1553 nm
 #    array_end=452 #to 1553 nm
     arr = arr[array_start:array_end]
     return arr
@@ -76,6 +79,17 @@ def getArray2 (dev, ite, vv, Length, sheet):
                 T_arr[ii, jj, kk, :]= arr
     return T_arr
 
+def getArray3 (D1, D2, sheet, pos):
+    T_arr = np.zeros ((D1, D2))
+    for vv in [0,20,40,60,100]:
+        if pos:
+            arr = np.array(sheet[['V'+str(vv)]])*10**9
+        else:
+            arr = np.array(sheet[['V-'+str(vv)]])*10**9
+        arr = np.squeeze (arr)
+        T_arr[vv, :]= arr
+    return T_arr
+
 def ER(arr, arr0):
     ERdB = 10*np.log10(arr/arr0)
     return ERdB
@@ -93,13 +107,13 @@ def calc_r2(y, f):
     return 1 - ssres/sstot
 
 
-# find local minimas and local maximas
+# find local minima and local maxima
 #minima = (np.diff(np.sign(np.diff(r80_norm))) > 0).nonzero()[0] + 1 # local min
 #maxima = (np.diff(np.sign(np.diff(r80_norm))) < 0).nonzero()[0] + 1 # local max
 ##############################################################################
-# Data Manipulation
+# Plotting the data
 ##############################################################################
-if args.Data == 'radius': ## Various ring radius
+if args.Data == 'radius': ## Transmission of silicon MRR for varying radius
     sheet = xl.parse(1)
     WL=np.array(sheet['WL'])
     WL = Range (WL)
@@ -120,7 +134,7 @@ if args.Data == 'radius': ## Various ring radius
     plt.show()
 
 ##############################################################################           
-if args.Data == 'process': ## Process steps
+if args.Data == 'process': ## Transmission of silicon MRR at each process step
     sheet = xl.parse(0)
     WL=np.array(xl.parse(0)[['WL[nm]']])
     WL = Range (WL)    
@@ -146,7 +160,7 @@ if args.Data == 'process': ## Process steps
     plt.show()
 
 ##############################################################################   
-if args.Data == 'final': ## Process steps
+if args.Data == 'final': ## Transmission of ITO modulator for varying device length
     sheet = xl.parse(2)
     WL=Range(np.array(sheet[['WL[nm]']]))
     EDFA=np.array(sheet[['EDFA[W]']])*10**9
@@ -180,12 +194,13 @@ if args.Data == 'final': ## Process steps
     plt.show()
 
 ##############################################################################
-if args.Data == 'EO': ## Process steps
-    sheet = xl.parse(4)
+if args.Data == 'EO': ## EO modulation performance
+    sheet = xl.parse(5)
     WL=np.array(sheet[['WL[nm]']])
     WL = Range (WL)
     EDFA=np.array(sheet[['EDFA[W]']])*10**9
-    T_arr = getArray(41, 851, sheet, args.pos)
+    T_arr = getArray3(101, 851, sheet, args.pos)
+    # T_arr = getArray(41, 851, sheet, args.pos)
     
     color=iter(cm.viridis(np.linspace(0,1,T_arr.shape[0]//5+1)))
     for ii in range(0,T_arr.shape[0],5):
@@ -196,7 +211,7 @@ if args.Data == 'EO': ## Process steps
 #    plt.axis([1536,1542,-2,0])
     plt.xlabel("Wavelength [nm]")
     plt.ylabel("Transmission")
-    plt.legend(loc="upper right")
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.show()
 
     color=iter(cm.viridis(np.linspace(0,1,T_arr.shape[0]//5+1)))
@@ -206,13 +221,13 @@ if args.Data == 'EO': ## Process steps
         spec = spec.reshape((851,1))
         spec = Range (spec)
         plt.plot (WL,ER(spec, spec0),c = next(color), label='V'+str(ii//5),linewidth=2)
-#    plt.axis([1530,1560,-4,4])
+    plt.axis([1545,1555,-7,7])
     plt.xlabel("Wavelength [nm]")
-    plt.ylabel("ER [dB]")
-    plt.legend(loc="upper right")
+    plt.ylabel("Extinction Ratio [dB]")
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.show()
 ##############################################################################
-if args.Data == 'IV': ## Process steps
+if args.Data == 'IV': ## The IV characteristic of the ITO modulator device
     sheet = xl.parse(4)
     V=np.array(sheet[['V']])
     I=np.array(sheet[['I']])
@@ -220,22 +235,18 @@ if args.Data == 'IV': ## Process steps
     plt.semilogy (V/5,I, label='IV curve', marker='o', color='#000000',linestyle='none')
     plt.xlabel("Voltage [V]")
     plt.ylabel("Current [nA]")
+    plt.axis([-4,4,0.2,20])
     plt.show()
 
 ##############################################################################
-# Resonance spectra of a single MRR is Lorentzian function; Photonic Microresonator Research and Applications, Ioannis Chremmos
-# Get the fitting parameters for the best lorentzian
-#solp, ier = fit(p1, WL, spec)
-#r2 = calc_r2(volts1, lorentz(time1, *solp1))
-##############################################################################
-if args.Data == 'EO_A': ## Process steps
+if args.Data == 'EO_A': ## EO modulation performance
     sheet = xl.parse(7)
     WL=np.array(sheet[['WL[nm]']])
     WL = Range (WL)
     EDFA=np.array(sheet[['EDFA[W]']])*10**9
 #    T_arr = getArray(9, 851, sheet, args.pos)
     DeviceLength = 5
-    sampleNum = 3
+    sampleNum = 1
     T_arr = getArray2(DeviceLength, 3, 9, 851, sheet)
     
     print ("\n transmission vs wavelength")
@@ -253,7 +264,7 @@ if args.Data == 'EO_A': ## Process steps
     
 
     
-    print ("\n The extinsion rati for negative voltage bias")
+    print ("\n Extinction ratio for negative bias")
     color=iter(cm.viridis(np.linspace(0,1,5)))
     spec0 = Range(T_arr[DeviceLength-1,sampleNum-1,4].reshape((851,1)))
     for ii in [4, 3, 2, 1, 0]:        
@@ -261,13 +272,13 @@ if args.Data == 'EO_A': ## Process steps
         spec = spec.reshape((851,1))
         spec = Range (spec)
         plt.plot (WL,ER(spec, spec0),c = next(color), label='V'+str(ii),linewidth=2)
-#    plt.axis([1530,1560,-4,4])
+    plt.axis([1533.5,1540,-5.5,1.7])
     plt.xlabel("Wavelength [nm]")
-    plt.ylabel("ER [dB]")
+    plt.ylabel("Extinction Ratio [dB]")
     plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left")
     plt.show()
     
-    print ("\n The extinsion rati for positive voltage bias")
+    print ("\n The Extinction ratio for positive bias")
     color=iter(cm.viridis(np.linspace(0,1,5)))
     spec0 = Range(T_arr[DeviceLength-1,sampleNum-1,4].reshape((851,1)))
     for ii in [4, 5, 6, 7, 8]:        
@@ -275,13 +286,13 @@ if args.Data == 'EO_A': ## Process steps
         spec = spec.reshape((851,1))
         spec = Range (spec) 
         plt.plot (WL,ER(spec, spec0),c = next(color), label='V'+str(ii),linewidth=2)
-#    plt.axis([1530,1560,-4,4])
+    plt.axis([1533.5,1540,-5.5,1.7])
     plt.xlabel("Wavelength [nm]")
-    plt.ylabel("ER [dB]")
+    plt.ylabel("Extinction Ratio [dB]")
     plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left")
     plt.show()
     
-    print ("\n Extinsion ratio voltage vias for a particular device")
+    print ("\n Extinction ratio for a particular device")
     ER_STD, ER_AVG = np.zeros(0), np.zeros(0)  
     spec0 = Range(T_arr[DeviceLength-1,sampleNum-1,4].reshape((851,1)))
     for ii in range (0,9,1):
@@ -293,10 +304,10 @@ if args.Data == 'EO_A': ## Process steps
     bias = np.linspace(-4,4,9)
     plt.errorbar(bias, np.absolute(ER_AVG), ER_STD, fmt = 'o', color='black', ecolor='lightgray', elinewidth=2, capsize=5)
     plt.xlabel("Bias Voltage [V]")
-    plt.ylabel("ER [dB]")
+    plt.ylabel("Extinction Ratio [dB]")
     plt.show()
     
-    print ("\n Extinsion ratio voltage vias for a range of device")
+    print ("\n Extinction ratio per voltage for several device length")
     bias = np.linspace(-4,4,9)
     color=iter(cm.viridis(np.linspace(0,1,3)))
     for dd in [3,4,5]:
@@ -310,11 +321,11 @@ if args.Data == 'EO_A': ## Process steps
             ER_STD = np.append( ER_STD, np.std (ER(spec, spec0)))        
         plt.errorbar(bias, np.absolute(ER_AVG), ER_STD, fmt = 'o', c = next(color), label = str(dd)+' micron')
     plt.xlabel("Bias Voltage [V]")
-    plt.ylabel("ER [dB]")
+    plt.ylabel("Extinction Ratio [dB]")
     plt.legend(bbox_to_anchor=(1.04,0.5), loc="center left")
     plt.show()
     
-    print ("\n Extinsion ratio vs device length")
+    print ("\n Extinction ratio comparison of several device length")
     leng = np.array([2, 4, 6, 8, 16])
     ER_STD, ER_AVG = np.zeros(0), np.zeros(0)
     for dd in [1,2,3,4,5]:
@@ -325,7 +336,7 @@ if args.Data == 'EO_A': ## Process steps
         ER_AVG = np.append (ER_AVG, np.average (np.absolute(ER(spec, spec0))))
         ER_STD = np.append( ER_STD, np.std (np.absolute(ER(spec, spec0))))        
     plt.errorbar(leng, np.absolute(ER_AVG), ER_STD, fmt = 'o', c = 'k', label = str(dd)+' micron')
-    plt.xlabel("Bias Voltage [V]")
-    plt.ylabel("ER [dB]")
+    plt.xlabel("Device Length [$\mu m$]")
+    plt.ylabel("Extinction Ratio [dB]")
     plt.axis([0,18,0,1.25])
     plt.show()
